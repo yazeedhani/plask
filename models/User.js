@@ -14,17 +14,11 @@ const userSchema = new Schema({
         type: String,
         required: true
     },
-    token: String
+    accessToken: String,
+    refreshToken: String
 },
 {
     timestamps: true,
-    toObject: {
-        // remove `hashedPassword` field when we call `.toObject`
-        transform: (_doc, user) => {
-            delete user.hashedPassword
-            return user
-        }
-    }
 })
 
 module.exports = model('User', userSchema)

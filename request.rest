@@ -1,10 +1,10 @@
-GET http://localHost:3000/posts
+GET http://localHost:4000/posts
 Authorization: Bearer 
 
 ###
 
 # This takes in the Refresh Token from when you login and returns a new Access Token
-POST http://localhost:6000/token
+POST http://localhost:4000/token
 Content-Type: application/json
 
 {
@@ -14,16 +14,13 @@ Content-Type: application/json
 ###
 
 # This takes in the Refresh Token from when you login and removes it from DB so that user can no longer create new Access JWTs
-DELETE http://localhost:6000/logout
-Content-Type: application/json
+DELETE http://localhost:4000/logout
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2MmYwYWYwNjcxNjg3ZTUwMzdhNGEzZWUiLCJ1c2VybmFtZSI6IllhemVlZCIsImVtYWlsIjoieWF6ZWVkQGVtYWlsLmNvbSIsImhhc2hlZFBhc3N3b3JkIjoiJDJiJDEwJDE1OFNnRkQzaFhKdHdOOE85aWZjWS5JMnRocTVHVWxnbzhaazVMMXBrVWNPZWRhYlVOWk9DIiwiY3JlYXRlZEF0IjoiMjAyMi0wOC0wOFQwNjozNjo1NC4wNzdaIiwidXBkYXRlZEF0IjoiMjAyMi0wOC0wOFQwNjo1MjozNC45MDhaIiwiX192IjowLCJpYXQiOjE2NTk5NDE2NTEsImV4cCI6MTY1OTk0MTcxMX0.A4Y8YYuS7ARRQ-1pMKshnenD7Ww2PXBJTqyKt7b2RxU
 
-{    
-    "token": ""
-}
 
 ###
 
-POST http://localHost:6000/register
+POST http://localhost:4000/register
 Content-Type: application/json
 
 {
@@ -35,7 +32,7 @@ Content-Type: application/json
 
 ###
 
-POST http://localHost:6000/login
+POST http://localHost:4000/login
 Content-Type: application/json
 
 {

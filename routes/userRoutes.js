@@ -22,39 +22,18 @@
 const express = require('express')
 // Import bcrypt to hash user passwords and salts
 const bcrypt = require('bcrypt')
-// Create express server and call it app
-const app = express()
-
-require('dotenv').config()
-
 // Import jsonwebtoken to be able to generate JWTs
 const jwt = require('jsonwebtoken')
+require('dotenv').config()
 
-const { validateRegisterInput, validateLoginInput } = require('./util/validators')
-const authenticateToken = require('./util/authenticateToken')
-const User = require('./models/User')
-const mongoose = require('mongoose')
+/**** CUSTOME MIDDLEWARE ******/
+const { validateRegisterInput, validateLoginInput } = require('../util/validators')
+const authenticateToken = require('../util/authenticateToken')
 
-/* DATABASE CONNECTION */
-// connect to the database
-mongoose.connect(process.env.MONGODB_URI, {
-    useUnifiedTopology: true,
-	useNewUrlParser: true,
-})
-    .then( () => console.log('MongoDB Connected.'))
-    .catch( error => console.log(error))
+// Import User model
+const User = require('../models/User')
 
-// save the connection in a variable
-const db = mongoose.connection
-
-// create some notification
-db.on('open', () => console.log(`Mongoose connected to ${mongoose.connection.host}:${mongoose.connection.port}`))
-db.on('close', () => console.log(`You are disconnected from ${mongoose.connection.host}:${mongoose.connection.port}`))
-db.on('error', (error) => console.log(error))
-/***********************/
-
-// Store this in DB in real scenario
-const users = []
+const router = express.Router()
 
 // Function that generates an Access JWT
 function generateAccessToken(user) {
@@ -69,21 +48,12 @@ function generateAccessToken(user) {
 // NOTE: Normally, you should store these Refresh Tokens in a database
 let refreshTokens = []
 
-// This will allow our express web server to accept JSON
-// add `express.json` Express-provided middleware which will parse JSON requests into
-// JS objects before they reach the route files.
-// To use the JSON data passed into a request body by parsing it into a JS object.
-// Alternative 3rd-party bodyparser package is 'app.use(body-parser.urlencoded({ : false}))'
-// The method `.use` sets up middleware for the Express application
-app.use(express.json())
-
-
 // Generates a new ACCESS JWT
 // How to use this on the front-end: store the token in local storage.
 //  The token is set to expire in a certain amount of time.
 //  Set a timer on the front-end that checks local storage for a token.
 //  If there is no token, request token with refreshToken in authorization header
-app.post('/token', (req, res, next) => {
+router.post('/token', (req, res, next) => {
     // Check to see if you already have a Refresh Token
     // Check the refreshTokens[] above, but normally you would check your DB.
     const refreshToken = req.body.token
@@ -109,7 +79,7 @@ app.post('/token', (req, res, next) => {
 })
 
 // Async b/c bcrypt is an async library
-app.post('/register', async (req, res) => {
+router.post('/register', async (req, res) => {
     console.log("REQ.BODY REGISTER: ", req.body)
     // Middleware that checks if the username exists, validate username, email and password formats
     const {valid, errors} = validateRegisterInput(req.body.username, req.body.email, req.body.password, req.body.confirmPassword)
@@ -162,7 +132,7 @@ app.post('/register', async (req, res) => {
 })
 
 // Async b/c bcrypt is an async library
-app.post('/login', async (req, res) => {
+router.post('/login', async (req, res) => {
     console.log('REQ.BODY: ', req.body)
     // Create middleware that validates user login input; empty username and/or password
     const { valid, errors } = validateLoginInput(req.body.username, req.body.password)
@@ -206,12 +176,9 @@ app.post('/login', async (req, res) => {
     // The user has been authenticated at this point
     
     /* Now, authenticate and serialize this user with a JWT */
-    const username = req.body.username
+    // const username = req.body.username
     
-    const email = req.body.email
-    // Maybe add the token to 'user' object to be able to overwrite it when user signs out???????
-    // Dummy ID. This will be retrieved from DB
-    // const user = { id: 22, name: username} 
+    // const email = req.body.email
 
     /* Create ACCESS JWT */
     const accessToken = generateAccessToken(user.toJSON())
@@ -220,8 +187,7 @@ app.post('/login', async (req, res) => {
     // We use the same 'user' object because when we generate a new Access JWT, we want the same user stored in it.
     // No expiration data for this token since we will manually expire it when the user logs out.
     const refreshToken = jwt.sign(user.toJSON(), process.env.REFRESH_TOKEN_SECRET)
-    // Store refreshToken in refreshTokens[] above
-    // refreshTokens.push(refreshToken)
+
     // Add accessToken and refreshToken to user object
     user.accessToken = accessToken
     user.refreshToken = refreshToken
@@ -233,17 +199,37 @@ app.post('/login', async (req, res) => {
 })
 
 // Logs user out and deletes the user's Refresh JWT
-app.delete('/logout', authenticateToken, (req, res, next) => {
-    // Normally, delete from DB
-    // This deletes the user's Refresh JWT so that when they logout, no new Access JWTs can be created
-    // refreshTokens = refreshTokens.filter( token => token !== req.body.token)
+router.delete('/logout', authenticateToken, async (req, res, next) => {
+    // I want to be able to remove the tokens from the user object in req
+    // However, the token properties are not in the user object in this endpoint
+    // but are visible when a user logs in and tokens are added to user object and saved to DB.
+
+    // This deletes the user's Access and Refresh JWTs so that when they logout, no new Access JWTs can be created
     console.log('REQ.USER: ', req.user)
-    console.log('REQ.USER.ACCESSTOKEN: ', req.user.accessToken)
-    console.log('REQ.USER.REFRESHTOKEN: ', req.user.refreshToken)
-    res.sendStatus(204)
+    // These return 'undefined'
+    // console.log('REQ.USER.ACCESSTOKEN: ', req.user.accessToken)
+    // console.log('REQ.USER.REFRESHTOKEN: ', req.user.refreshToken)
+
+    // Delete tokens from user object
+    // delete req.user.accessToken
+    // delete req.user.refreshToken
+    // Delete tokens from DB
+    // User.findOne()
+
+    // ALTERNATIVE IDEA:
+    // Since tokens are not stored in req.user
+    // Find the user using username in DB to get the mongodb user document that has the tokens
+    // then delete tokens from document.
+    const userSignOut = await User.findByIdAndUpdate(req.user._id, { $unset: {accessToken: "", refreshToken: ""}})
+    console.log('USERSIGNOUT: ', userSignOut)
+
+    // delete userSignOut.accessToken
+    // delete userSignOut.refreshToken
+    // await userSignOut.save()
+    // const authHeader = req.headers["authorization"]
+    // console.log('AuthHEADER: ', authHeader)
+    // .status(204).
+    res.send('You have been logged out')
 })
 
-// authServer listening for requests on port 4000
-app.listen(6000, () => {
-    console.log('Auth Server running on port 6000')
-})
+module.exports = router

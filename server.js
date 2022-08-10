@@ -1,10 +1,15 @@
 /* DEPENDENCIES */
 const express = require('express')
-const { graphqlHTTP } = require('express-graphql') // to create an Express server that runs a GQL API
-const { buildSchema } = require('graphql')
 const mongoose = require('mongoose')
 require('dotenv').config()
 
+
+/******** CUSTOM MIDDLEWARE *********/
+const requestLogger = require('./util/requestLogger')
+
+/******** ROUTES *******/
+const userRoutes = require('./routes/userRoutes')
+// console.log('USERROUTES: ', userRoutes)
 /* DATABASE CONNECTION */
 // connect to the database
 mongoose.connect(process.env.MONGODB_URI, {
@@ -23,32 +28,23 @@ db.on('close', () => console.log(`You are disconnected from ${mongoose.connectio
 db.on('error', (error) => console.log(error))
 /***********************/
 
-// Construct a schema, using GraphQL schema language
-const schema = buildSchema(`
-    type Query {
-        hello: String      
-    }
-`)
-
-// The root provides a resolver function for each API endpoint
-const root = {
-    hello: () => {
-        return 'Hello World!'
-    }
-}
-
 // Create Express server
 const app = express()
 
-// Create GQL API on top of Express
-// Constructs an Express application based on a GraphQL schema
-// graphqlHTTP middleware function parses, validates, and executes a GQL request
-app.use('/graphql', graphqlHTTP({
-    schema: schema,
-    rootValue: root,
-    graphiql: true
-}))
+// This will allow our express web server to accept JSON
+// add `express.json` Express-provided middleware which will parse JSON requests into
+// JS objects before they reach the route files.
+// To use the JSON data passed into a request body by parsing it into a JS object.
+// Alternative 3rd-party bodyparser package is 'app.use(body-parser.urlencoded({ : false}))'
+// The method `.use` sets up middleware for the Express application
+app.use(express.json())
+// this parses requests sent by `$.ajax`, which use a different content type
+app.use(express.urlencoded({ extended: true }))
+
+app.use(requestLogger)
+
+app.use(userRoutes)
 
 app.listen(4000, () => {
-    console.log('Running a GraphQL API server at http://localhost:4000/graphql')
+    console.log('Server running on port 4000')
 })

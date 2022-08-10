@@ -18,18 +18,22 @@ const authenticateToken = (req, res, next) => {
     }
     // Verify token and that this is the correct user
     // This is where the JWT signature is verified
-    // It takes the JWT header and payload and hashes it with secret key using the crypto algorithm
-    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, user) => {
-        // 403 Unauthorized (Forbidden) - meaning we see you have a JWT, but it is no longer valid.
-        if(err) {
-            return res.sendStatus(403)
-        }
-        // This means you are authorized and set user in req to be able to access it in the REST endpoint
-        // user object here is brought in from the /login route where we serialzed user object (user) whenever a user logs in
-        // Then return that user to the GET /posts endpoint
-        req.user = user
-        // Once this middleware is done, move on to the next middleware function
-        next()
+    // jwt.verify returns a decoded object(the user object) that we stored the token in.
+    // jwt.verify() takes the header and payload from token and hashed it with SECRE_KEY using crypto algo from header
+    // to create a signature and compare it to the signature in token.
+    // If both signatures match, then token has not been tampered with and payload will be returned, otherwise, token is invalid.
+        jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, user) => {
+            console.log('USER: ', user)
+            // 403 Unauthorized (Forbidden) - meaning we see you have a JWT, but it is no longer valid.
+            if(err) {
+                return res.sendStatus(403)
+            }
+            // This means you are authorized and set user in req to be able to access it in the REST endpoint
+            // user object here is brought in from the /login route where we serialzed user object (user) whenever a user logs in
+            // Then return that user to the GET /posts endpoint
+            req.user = user
+            // Once this middleware is done, move on to the next middleware function
+            next()
     })
 }
 
