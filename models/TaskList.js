@@ -1,8 +1,9 @@
-const { model, Schema } = require('mongoose')
+const mongoose = require('mongoose')
 
-const taskListSchema = new Schema({
+const taskListSchema = new mongoose.Schema({
     date: {
         type: Date,
+        default: Date.now,
         required: true
     },
     tasks: [
@@ -19,4 +20,4 @@ const taskListSchema = new Schema({
     }
 })
 
-module.exports = model('TaskList', taskListSchema)
+module.exports = mongoose.model('TaskList', taskListSchema)
