@@ -9,8 +9,11 @@ const requestLogger = require('./util/requestLogger')
 
 /******** ROUTES *******/
 const userRoutes = require('./routes/userRoutes')
+const taskListRoutes = require('./routes/taskList')
+const taskRoutes = require('./routes/tasks')
 // console.log('USERROUTES: ', userRoutes)
-/* DATABASE CONNECTION */
+
+/***** DATABASE CONNECTION ******/
 // connect to the database
 mongoose.connect(process.env.MONGODB_URI, {
     useUnifiedTopology: true,
@@ -44,6 +47,8 @@ app.use(express.urlencoded({ extended: true }))
 app.use(requestLogger)
 
 app.use(userRoutes)
+app.use(taskListRoutes)
+app.use(taskRoutes)
 
 app.listen(4000, () => {
     console.log('Server running on port 4000')
