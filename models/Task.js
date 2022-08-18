@@ -9,6 +9,19 @@ const taskSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
         required: true,
+    },
+    taskList: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'TaskList',
+        required: true,
+    },
+    startTime: {
+        type: String,
+        default: '-'
+    },
+    endTime: {
+        type: String,
+        default: '-'
     }
 }, { timestamps: true,})
 
