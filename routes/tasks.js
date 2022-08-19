@@ -41,14 +41,55 @@ router.delete('/task/:taskListID/:taskID', authenticateToken, async (req, res, n
     const taskListID = req.params.taskListID
     const taskID = req.params.taskID
 
+    
+    if(taskListID.length < 23) {
+        console.log('TASKLISTID LENGTH: ', taskListID.length)
+        res.status(400).send('Task list does not exist')
+    }
+    if(taskID.length < 23) {
+        res.status(400).send('Task does not exist')
+    }
     // First make sure taskList and task exists
+    const checkTaskList = async (taskListID) => {
+        // find task list
+        const taskList = await TaskList.findById(taskListID)
+        // if task list exists, return it
+        if(taskList) {
+            return taskList
+        }
+        // if not, return response
+        else {
+            res.status(404).send('Task list does not exist')
+        }
+    }
 
+    const checkTask = async (taskID) => {
+
+        // Find task
+        const task = await Task.findById(taskID)
+        // If task exists, return it
+        if(task) {
+            return task
+        }
+        // If not, return response
+        else {
+            res.status(404).send('Task does not exist')
+        }
+    }
+
+    // If task list exists, then find the task and delete it if it exists then delete it from task list
+    // Check if task list exists
+    const taskListExists = await checkTaskList(taskListID)
+    // Check if task exists
+    const taskExists = await checkTask(taskID)
     // Delete task
-    const deletedTask = await Task.findByIdAndDelete(taskID)
-    // Delete task from task list
-    const updateTaskList = await TaskList.findByIdAndUpdate(taskListID, { $pull: {tasks: taskID} })
-    console.log('UPDATED TASK LIST')
-    res.status(201).json({taskList: updateTaskList})
+    if(taskListExists && taskExists) {
+        const deletedTask = await Task.findByIdAndDelete(taskID)
+        // Delete task from task list
+        const updateTaskList = await TaskList.findByIdAndUpdate(taskListID, { $pull: {tasks: taskID} })
+        console.log('UPDATED TASK LIST')
+        res.status(201).json({taskList: updateTaskList})
+    }
 })
 
 module.exports = router
