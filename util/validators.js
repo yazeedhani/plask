@@ -2,12 +2,15 @@
 module.exports.validateRegisterInput = (username, email, password, confirmPassword) => {
     // We will store error messages from below here so we can display them on the front-end
     const errors = {}
+    // Store password errors
+    const passwordErrors = []
 
     // If username is empty
     if(username.trim() === '')
     {
         errors.username = 'Username must not be empty'
     }
+
     // If email is empty
     if(email.trim() === '')
     {
@@ -22,15 +25,51 @@ module.exports.validateRegisterInput = (username, email, password, confirmPasswo
             errors.email = 'Email must be a valid email address.'
         }
     }
+
     // If password is empty
     if(password === '')
     {
-        errors.password = 'Password must no be empty'
+        errors.password = 'Password must not be empty'
     }
-    // If password does not match confirmPassword
-    else if(password !== confirmPassword)
+    // If password is not empty, check to see if password meets requirements
+    else if(password.length > 0)
     {
-        errors.confirmPassword = 'Passwords must match'
+        // check if password is at least 8 characters
+        if(password.length < 8)
+        {
+            passwordErrors.push('Password must be at least 8 characters')
+        }
+        // check if password meets other requirements, if it is at least 8 characters
+        else
+        {
+            // check if password has at least 1 special character
+            if(!/[`!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~]/.test(password))
+            {
+                passwordErrors.push('Password must include at least 1 special character')
+            }
+            // check if password has at least 1 uppercase letter
+            if(!/[A-Z]/.test(password))
+            {
+                passwordErrors.push('Password must include at least 1 uppercase letter')
+            }
+            // check if password has at least 1 number
+            if(!/[0-9]/.test(password))
+            {
+                passwordErrors.push('Password must include at least 1 number')
+            }
+            // If password does not match confirmPassword
+            if(password !== confirmPassword)
+            {
+                passwordErrors.push('Passwords must match')
+                
+            }
+        }
+    }
+    
+    // If password does not meet requirements, then store in errors object
+    if(passwordErrors.length > 0)
+    {
+        errors.password = passwordErrors
     }
 
     return {
