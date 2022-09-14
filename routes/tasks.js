@@ -4,7 +4,8 @@ const router = express.Router()
 
 const Task = require('../models/Task')
 const TaskList = require('../models/TaskList')
-const { findByIdAndUpdate } = require('../models/User')
+
+const { checkResourceOwner } = require('../util/checkOwnership')
 
 const authenticateToken = require('../util/authenticateToken')
 
@@ -40,7 +41,6 @@ router.patch('/task/:taskID', authenticateToken, async (req, res, next) => {
 router.delete('/task/:taskListID/:taskID', authenticateToken, async (req, res, next) => {
     const taskListID = req.params.taskListID
     const taskID = req.params.taskID
-
     
     if(taskListID.length < 23) {
         console.log('TASKLISTID LENGTH: ', taskListID.length)
@@ -52,7 +52,7 @@ router.delete('/task/:taskListID/:taskID', authenticateToken, async (req, res, n
     // First make sure taskList and task exists
     const checkTaskList = async (taskListID) => {
         // find task list
-        const taskList = await TaskList.findById(taskListID)
+        const taskList = await TaskList.findById(taskListID).populate('owner')
         // if task list exists, return it
         if(taskList) {
             return taskList
@@ -67,6 +67,7 @@ router.delete('/task/:taskListID/:taskID', authenticateToken, async (req, res, n
 
         // Find task
         const task = await Task.findById(taskID)
+        console.log('TASK:', task)
         // If task exists, return it
         if(task) {
             return task
@@ -80,8 +81,10 @@ router.delete('/task/:taskListID/:taskID', authenticateToken, async (req, res, n
     // If task list exists, then find the task and delete it if it exists then delete it from task list
     // Check if task list exists
     const taskListExists = await checkTaskList(taskListID)
+    checkResourceOwner(req, taskListExists)
     // Check if task exists
     const taskExists = await checkTask(taskID)
+    
     // Delete task
     if(taskListExists && taskExists) {
         const deletedTask = await Task.findByIdAndDelete(taskID)
