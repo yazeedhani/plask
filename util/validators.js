@@ -52,6 +52,11 @@ module.exports.validateRegisterInput = (username, email, password, confirmPasswo
             {
                 passwordErrors.push('Password must include at least 1 uppercase letter')
             }
+            // check if password has at least 1 lowercase letter
+            if(!/[a-z]/.test(password))
+            {
+                passwordErrors.push('Password must include at least 1 lowercase letter')
+            }
             // check if password has at least 1 number
             if(!/[0-9]/.test(password))
             {
