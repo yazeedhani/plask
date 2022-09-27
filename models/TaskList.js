@@ -2,9 +2,9 @@ const mongoose = require('mongoose')
 
 const taskListSchema = new mongoose.Schema({
     date: {
-        type: Date,
-        default: Date.now,
-        required: true
+        type: String,
+        // default: Date.now,
+        // required: true
     },
     tasks: [
         {

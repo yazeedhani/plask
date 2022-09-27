@@ -17,6 +17,16 @@
 // However, if a malicious user has access to the Refresh Token, then they can use it to constantly generate a new Access Token.
 // So to solve this issue, delete the Refresh Token when you logout
 // NOTE: the main reason to use Refresh Tokens is to invalidate access to users who shouldn't have access.
+// IDEA FOR THE FUTURE:
+//  Only store the users refresh token in DB. 
+//  When a user first logs in, get a new access token and send it to the client in context
+//  Access token should live for 15mins
+//  With each request to a protected route, check if token is not expired
+//  If expired, request new token by checking if the user has a refresh token
+//  If user has a refresh token, then generate new access token and send to client
+//  Client must update context (Anytime a new access token is generated, include it in the response
+//  and on the client side, check if there is a new access token in the response and then update the context
+//  with the new access token)
 
 // Import express to create a web server using routes
 const express = require('express')
@@ -24,6 +34,7 @@ const express = require('express')
 const bcrypt = require('bcrypt')
 // Import jsonwebtoken to be able to generate JWTs
 const jwt = require('jsonwebtoken')
+const crypto = require('crypto')
 require('dotenv').config()
 
 /**** CUSTOME MIDDLEWARE ******/
@@ -41,7 +52,8 @@ function generateAccessToken(user) {
     // process.env.ACCESS_TOKEN_SECRET - Secret Key
     // This will create a token signature that will be a part of the JWT
     // User can now access REST endpoints since user info is stored in the JWT
-   return jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "1min" })
+   return jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "10min" })
+    //    { expiresIn: "3min" }
 }
 
 // Store Refresh Tokens here.
@@ -80,7 +92,6 @@ router.post('/token', (req, res, next) => {
 
 // Async b/c bcrypt is an async library
 router.post('/register', async (req, res) => {
-    console.log("REQ.BODY REGISTER: ", req.body)
     // Middleware that checks if the username exists, validate username, email and password formats
     const {valid, errors} = validateRegisterInput(req.body.username, req.body.email, req.body.password, req.body.confirmPassword)
 
@@ -165,7 +176,7 @@ router.post('/login', async (req, res) => {
         }
         // User typed in incorrect password
         else {
-            return res.status(403).send('Not allowed')
+            return res.status(403).send('Either username or password is incorrect.')
         }
     }
     // This will throw an error if for example we get undefined or whatever
@@ -203,6 +214,22 @@ router.delete('/logout', authenticateToken, async (req, res, next) => {
     // I want to be able to remove the tokens from the user object in req
     // However, the token properties are not in the user object in this endpoint
     // but are visible when a user logs in and tokens are added to user object and saved to DB.
+    // Once tokens are in user object, then invalidate it here by overwriting it.
+    // req.user.token = crypto.randomBytes(16)
+    
+    // This deletes the user's Access and Refresh JWTs so that when they logout, no new Access JWTs can be created
+    console.log('REQ.USER: ', req.user)
+    // These return 'undefined'
+    console.log('REQ.USER.ACCESSTOKEN: ', req.user.accessToken)
+    // console.log('REQ.USER.REFRESHTOKEN: ', req.user.refreshToken)
+
+    // Delete tokens from DB
+    await User.updateOne({username: req.user.username}, { $unset: {accessToken: "", refreshToken: ""}})
+    // await User.updateOne({refreshToken: req.user.refreshToken})
+
+    // Delete tokens from user object
+    delete req.user
+    // delete req.user.refreshToken
 
     // This deletes the user's Access and Refresh JWTs so that when they logout, no new Access JWTs can be created
     console.log('REQ.USER: ', req.user)
@@ -210,26 +237,7 @@ router.delete('/logout', authenticateToken, async (req, res, next) => {
     // console.log('REQ.USER.ACCESSTOKEN: ', req.user.accessToken)
     // console.log('REQ.USER.REFRESHTOKEN: ', req.user.refreshToken)
 
-    // Delete tokens from user object
-    // delete req.user.accessToken
-    // delete req.user.refreshToken
-    // Delete tokens from DB
-    // User.findOne()
-
-    // ALTERNATIVE IDEA:
-    // Since tokens are not stored in req.user
-    // Find the user using username in DB to get the mongodb user document that has the tokens
-    // then delete tokens from document.
-    const userSignOut = await User.findByIdAndUpdate(req.user._id, { $unset: {accessToken: "", refreshToken: ""}})
-    console.log('USERSIGNOUT: ', userSignOut)
-
-    // delete userSignOut.accessToken
-    // delete userSignOut.refreshToken
-    // await userSignOut.save()
-    // const authHeader = req.headers["authorization"]
-    // console.log('AuthHEADER: ', authHeader)
-    // .status(204).
-    res.send('You have been logged out')
+    res.status(204).send('You have been logged out')
 })
 
 module.exports = router
